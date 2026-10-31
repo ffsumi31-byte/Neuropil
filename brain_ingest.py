@@ -1,38 +1,46 @@
+import os
+import traceback
 import requests
 import wikipedia
 
-RUST_API = "http://127.0.0.1:8080/api/learn"
+BASE_URL = os.getenv("NEUROPIL_URL", "http://127.0.0.1:8080")
 
-def learn_topic(topic: str, max_connections: int = 8) -> None:
+
+def feed_wikipedia_to_workspace(topic: str) -> None:
     try:
-        page = wikipedia.page(topic, auto_suggest=False)
-    except wikipedia.exceptions.DisambiguationError as e:
-        page = wikipedia.page(e.options[0], auto_suggest=False)
+        try:
+            page = wikipedia.page(topic, auto_suggest=False)
+        except wikipedia.exceptions.DisambiguationError as e:
+            page = wikipedia.page(e.options[0], auto_suggest=False)
 
-    nodes = [{
-        "id": page.title,
-        "group": 1,
-        "summary": page.summary[:200]
-    }]
-    links = []
+        summary = page.summary[:180].replace("\n", " ")
+        payload = {
+            "prompt": f"Build sharp structure for {page.title}: {summary}",
+            "workspace": [
+                {
+                    "name": "Origin_Cube",
+                    "role": f"Wikipedia Seed: {page.title}",
+                    "pos": [0.0, 0.5, 0.0],
+                    "size": [1.0, 1.0, 1.0],
+                    "rot": [0.0, 0.0, 0.0],
+                    "color": "#5EB58B",
+                    "mat": "matte",
+                }
+            ],
+        }
 
-    for linked_title in page.links[:max_connections]:
-        nodes.append({
-            "id": linked_title,
-            "group": 2,
-            "summary": f"Connected concept to {page.title}"
-        })
-        links.append({
-            "source": page.title,
-            "target": linked_title,
-            "weight": 1.0
-        })
+        res = requests.post(f"{BASE_URL}/api/prompt", json=payload, timeout=10)
+        res.raise_for_status()
+        print(f"[OK] Connected '{page.title}' -> AI Plan:", res.json())
 
-    payload = {"nodes": nodes, "links": links}
-    response = requests.post(RUST_API, json=payload, timeout=5)
-    print(f"Learned '{page.title}': {response.text}")
+    except Exception as exc:
+        print("=" * 60)
+        print(f"[NEUROPIL PYTHON CONNECTOR ERROR] Topic: {topic}")
+        print(f"Reason: {exc}")
+        print(traceback.format_exc())
+        print("=" * 60)
+
 
 if __name__ == "__main__":
-    seed_topics = ["Artificial intelligence", "Neuroscience", "Knowledge graph"]
-    for seed in seed_topics:
-        learn_topic(seed)
+    feed_wikipedia_to_workspace(" Brutalist architecture")
+    
