@@ -1,0 +1,19 @@
+<script src="https://unpkg.com/3d-force-graph"></script>
+  <script>
+    const container = document.getElementById('brain-viewport');
+    const statusLabel = document.getElementById('node-info');
+    const Graph = ForceGraph3D()(container)
+      .backgroundColor('#05050a')
+      .nodeAutoColorBy('group')
+      .nodeLabel(n => `${n.id}: ${n.summary}`)
+      .linkDirectionalParticles(2)
+      .linkDirectionalParticleSpeed(0.006)
+      .onNodeClick(n => { statusLabel.textContent = `${n.id} — ${n.summary}`; });
+
+    async function refreshBrain() {
+      const res = await fetch('http://127.0.0.1:8080/api/brain');
+      Graph.graphData(await res.json());
+    }
+    refreshBrain();
+    setInterval(refreshBrain, 4000);
+  </script>
