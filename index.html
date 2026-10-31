@@ -1,19 +1,106 @@
-<script src="https://unpkg.com/3d-force-graph"></script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NEUROPIL // Roblox 3D Semantic Modeler</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/3d-force-graph"></script>
+</head>
+<body>
+  <div id="brain-viewport"></div>
+
+  <aside class="hud-overlay">
+    <h1>NEUROPIL // ROBLOX 3D BRAIN</h1>
+    <p id="node-info">Click any 3D Part to inspect its semantic role, joints, and stud dimensions.</p>
+
+    <div class="prompt-box">
+      <input id="prompt-input" type="text" placeholder="e.g. Cyber knight with sword and jetpack" />
+      <button id="build-btn">Generate 3D Parts</button>
+    </div>
+
+    <textarea id="luau-output" readonly placeholder="Roblox Studio Luau Script will appear here..."></textarea>
+    <button id="copy-btn" class="secondary-btn">Copy Roblox Luau Script</button>
+  </aside>
+
   <script>
     const container = document.getElementById('brain-viewport');
     const statusLabel = document.getElementById('node-info');
+    const luauOutput = document.getElementById('luau-output');
+
     const Graph = ForceGraph3D()(container)
       .backgroundColor('#05050a')
-      .nodeAutoColorBy('group')
-      .nodeLabel(n => `${n.id}: ${n.summary}`)
+      .nodeThreeObject(node => {
+        const [sx, sy, sz] = node.size || [1, 1, 1];
+        let geo;
+        if (node.shape === 'Cylinder') {
+          geo = new THREE.CylinderGeometry(sx * 3, sx * 3, sy * 6, 16);
+        } else if (node.shape === 'Wedge') {
+          geo = new THREE.ConeGeometry(sx * 4, sy * 6, 4);
+        } else {
+          geo = new THREE.BoxGeometry(sx * 6, sy * 6, sz * 6);
+        }
+        const isNeon = node.material === 'Neon';
+        const mat = new THREE.MeshStandardMaterial({
+          color: node.color || '#38bdf8',
+          emissive: isNeon ? (node.color || '#38bdf8') : '#000000',
+          emissiveIntensity: isNeon ? 0.8 : 0,
+          roughness: node.material === 'Metal' ? 0.25 : 0.6,
+          metalness: node.material === 'Metal' ? 0.8 : 0.1
+        });
+        return new THREE.Mesh(geo, mat);
+      })
+      .linkWidth(2)
       .linkDirectionalParticles(2)
-      .linkDirectionalParticleSpeed(0.006)
-      .onNodeClick(n => { statusLabel.textContent = `${n.id} — ${n.summary}`; });
+      .linkDirectionalParticleSpeed(0.008)
+      .onNodeClick(n => {
+        statusLabel.innerHTML = `<strong>${n.id}</strong> [${n.shape} | ${n.material}]<br/>Size: ${n.size.join(' × ')} studs<br/><em>Meaning:</em> ${n.semantic_role}`;
+      });
+
+    // Add studio lighting for 3D blocky meshes
+    const scene = Graph.scene();
+    scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.4);
+    dirLight.position.set(40, 80, 50);
+    scene.add(dirLight);
+
+    function applyBrainData(data) {
+      const mappedNodes = data.nodes.map(n => ({
+        ...n,
+        fx: n.position[0] * 14,
+        fy: n.position[1] * 14,
+        fz: n.position[2] * 14
+      }));
+      Graph.graphData({ nodes: mappedNodes, links: data.links });
+      luauOutput.value = data.luau_script || '';
+    }
 
     async function refreshBrain() {
-      const res = await fetch('http://127.0.0.1:8080/api/brain');
-      Graph.graphData(await res.json());
+      const res = await fetch('/api/brain');
+      applyBrainData(await res.json());
     }
+
+    document.getElementById('build-btn').addEventListener('click', async () => {
+      const prompt = document.getElementById('prompt-input').value.trim();
+      if (!prompt) return;
+      statusLabel.textContent = `Synthesizing 3D part semantics for "${prompt}"...`;
+      const res = await fetch('/api/prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt })
+      });
+      applyBrainData(await res.json());
+      statusLabel.textContent = `Built "${prompt}". Click any 3D block to see its role!`;
+    });
+
+    document.getElementById('copy-btn').addEventListener('click', () => {
+      navigator.clipboard.writeText(luauOutput.value);
+      document.getElementById('copy-btn').textContent = 'Copied to Clipboard!';
+      setTimeout(() => document.getElementById('copy-btn').textContent = 'Copy Roblox Luau Script', 2000);
+    });
+
     refreshBrain();
-    setInterval(refreshBrain, 4000);
   </script>
+</body>
+</html>
