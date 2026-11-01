@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NEUROPIL // AI 3D Sharp-Cube Workspace</title>
-  <link rel="stylesheet" href="styles.css" />
+  <title>Neuropil — build in 3D by chatting</title>
+  <link rel="stylesheet" href="/styles.css" />
   <script type="importmap">
     {
       "imports": {
@@ -15,870 +15,114 @@
   </script>
 </head>
 <body>
+<div class="app" id="app">
 
-  <!-- 1. FULL-SCREEN BACKGROUND 3D WORKSPACE -->
-  <div id="workspace-bg"></div>
-
-  <!-- 2. TOP FLOATING PILL: QUICK TOOLS & FIXED EXPORTS -->
-  <header class="floating-topbar">
-    <div class="brand-badge">
-      <span class="dot"></span>
-      <span>NEUROPIL 3D</span>
-      <small id="cube-counter">1 Cube</small>
+  <!-- Sidebar: history -->
+  <aside class="sidebar" id="sidebar">
+    <div class="side-top">
+      <div class="brand"><span class="logo"></span>Neuropil</div>
+      <button class="icon" id="btn-side-close" title="Hide sidebar">‹</button>
     </div>
-
-    <div class="tool-group">
-      <button class="pill-btn active" id="mode-cube">Cube</button>
-      <button class="pill-btn" id="mode-corner">8-Corners</button>
-      <button class="pill-btn" id="mode-face">6-Faces</button>
-      <span class="divider"></span>
-      <button class="pill-btn active" id="gz-move" title="Shortcut: W">Move</button>
-      <button class="pill-btn" id="gz-rotate" title="Shortcut: E">Rotate</button>
-      <button class="pill-btn" id="gz-scale" title="Shortcut: R">Scale</button>
-      <span class="divider"></span>
-      <button class="pill-btn" id="btn-add-cube">+ Cube</button>
-      <button class="pill-btn" id="btn-reset-origin">Reset to 1 Cube</button>
-      <button class="pill-btn" id="btn-toggle-inspector">Inspector</button>
+    <button class="new-chat" id="btn-new">＋ New build</button>
+    <div class="side-label">Recent</div>
+    <nav class="history" id="history"></nav>
+    <div class="side-foot">
+      <span class="status-dot" id="engine-dot"></span>
+      <span id="engine-status">Rust engine: checking…</span>
     </div>
+  </aside>
 
-    <div class="export-group">
-      <button class="pill-btn accent" id="export-obj">Export .OBJ</button>
-      <button class="pill-btn accent-teal" id="export-gltf">Export .GLTF</button>
-      <button class="pill-btn" id="export-json">Export .JSON</button>
-    </div>
-  </header>
+  <!-- Chat -->
+  <main class="chat">
+    <header class="chat-top">
+      <button class="icon" id="btn-side-open" title="Show sidebar">☰</button>
+      <span class="chat-title" id="chat-title">New build</span>
+      <span class="spacer"></span>
+      <button class="ghost" id="btn-toggle-view">3D view</button>
+    </header>
 
-  <!-- 3. LEFT COLLAPSIBLE CLAUDE/CHATGPT-STYLE AI SIDEBAR -->
-  <aside class="ai-chat-dock" id="ai-dock">
-    <div class="dock-header">
-      <div>
-        <h2>Neuropil Architect</h2>
-        <p>Live 3D Workspace Agent • 5,184 Sharp Ops</p>
-      </div>
-      <button class="icon-btn" id="btn-api-settings" title="Connect OpenAI / Claude / Custom API">⚙️ API</button>
-    </div>
-
-    <!-- Collapsible External AI Connection Drawer -->
-    <div class="api-drawer hidden" id="api-drawer">
-      <label>AI Endpoint Mode</label>
-      <select id="ai-provider">
-        <option value="backend">Neuropil Rust Backend + Local Engine (Default)</option>
-        <option value="openai">OpenAI Compatible API (GPT-4o / Groq / DeepSeek)</option>
-      </select>
-      <input type="text" id="api-url" placeholder="https://api.openai.com/v1/chat/completions" value="https://api.openai.com/v1/chat/completions" />
-      <input type="password" id="api-key" placeholder="sk-... (Optional if using built-in Rust AI)" />
-      <input type="text" id="api-model" placeholder="Model (e.g. gpt-4o-mini)" value="gpt-4o-mini" />
-    </div>
-
-    <!-- Chat Message & Live AI Action Stream -->
-    <div class="chat-stream" id="chat-stream">
-      <div class="msg ai">
-        <div class="msg-role">NEUROPIL AI</div>
-        <div class="msg-body">
-          Workspace initialized with a single <strong>1×1×1 Sharp Origin Cube</strong>.
-          Tell me what to build or modify—every cube operation I run will stream live below, and any failure will print a full diagnostic stack trace.
+    <section class="stream" id="stream">
+      <div class="empty" id="empty">
+        <div class="logo big"></div>
+        <h1>What shall we build?</h1>
+        <p>Describe a model in plain English. A planner written in Rust — no API key, no cloud AI — builds it cube by cube.</p>
+        <div class="cards">
+          <button class="card" data-prompt="Build a tower with 6 floors"><b>Tower</b><span>Build a tower with 6 floors</span></button>
+          <button class="card" data-prompt="Build a house, make the roof red and add 2 trees"><b>House &amp; trees</b><span>Build a house, make the roof red…</span></button>
+          <button class="card" data-prompt="Build a castle"><b>Castle</b><span>Four towers, walls, gate and keep</span></button>
+          <button class="card" data-prompt="Build a huge neon robot"><b>Robot</b><span>Build a huge neon robot</span></button>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- Quick Prompt Chips -->
-    <div class="chip-row">
-      <button class="chip" data-prompt="Extrude top face 3 times and taper into a sharp obelisk">Sharp Obelisk</button>
-      <button class="chip" data-prompt="Build a sharp blocky R15 cyber character from the origin cube">Sharp R15 Rig</button>
-      <button class="chip" data-prompt="Sculpt a sharp cyber katana blade with guard">Sharp Katana</button>
-      <button class="chip" data-prompt="Test full error diagnostic trace">Test Error Trace</button>
-    </div>
-
-    <!-- Bottom Prompt Composer (Claude/ChatGPT Style) -->
-    <div class="prompt-composer">
-      <textarea id="chat-input" rows="2" placeholder="Message Neuropil AI... (Enter to send, Shift+Enter for newline)"></textarea>
-      <button id="chat-send" class="send-btn">Build ↑</button>
-    </div>
-  </aside>
-
-  <!-- 4. RIGHT FLOATING CONTEXTUAL SHARP-CUBE INSPECTOR -->
-  <aside class="floating-inspector" id="inspector-panel">
-    <div class="insp-header">
-      <span id="insp-title">Origin_Cube</span>
-      <button class="danger-sm" id="btn-del-cube">Delete</button>
-    </div>
-
-    <div class="insp-section">
-      <label>Semantic Role (AI Memory)</label>
-      <input type="text" id="inp-role" value="Root 1x1x1 sharp origin cube" />
-    </div>
-
-    <div class="insp-section">
-      <label>6-Face Instant Push / Extrude</label>
-      <div class="face-mini-grid">
-        <span>+Y (Top)</span>
-        <button data-push="y+,-0.25">-</button>
-        <button data-push="y+,0.25">+</button>
-        <button data-ext="top">Extrude</button>
-
-        <span>-Y (Bot)</span>
-        <button data-push="y-,-0.25">-</button>
-        <button data-push="y-,0.25">+</button>
-        <button data-ext="bottom">Extrude</button>
-
-        <span>+X (Right)</span>
-        <button data-push="x+,-0.25">-</button>
-        <button data-push="x+,0.25">+</button>
-        <button data-ext="right">Extrude</button>
-
-        <span>-X (Left)</span>
-        <button data-push="x-,-0.25">-</button>
-        <button data-push="x-,0.25">+</button>
-        <button data-ext="left">Extrude</button>
-
-        <span>+Z (Front)</span>
-        <button data-push="z+,-0.25">-</button>
-        <button data-push="z+,0.25">+</button>
-        <button data-ext="front">Extrude</button>
-
-        <span>-Z (Back)</span>
-        <button data-push="z-,-0.25">-</button>
-        <button data-push="z-,0.25">+</button>
-        <button data-ext="back">Extrude</button>
+    <footer class="composer-wrap">
+      <div class="composer">
+        <textarea id="chat-input" rows="1" placeholder="Describe what to build or change…  (Enter to send, Shift+Enter for a new line)"></textarea>
+        <div class="comp-row">
+          <span class="hint">Built-in Rust engine · say “help” to see what it knows</span>
+          <button class="send" id="chat-send" title="Send">↑</button>
+        </div>
       </div>
-    </div>
+    </footer>
+  </main>
 
-    <div class="insp-section">
-      <label>Sharp Chisel & Mirror</label>
-      <div class="btn-grid-2">
-        <button class="pill-btn" data-taper="top-in">Taper Top</button>
-        <button class="pill-btn" data-taper="front-edge">Razor Blade</button>
-        <button class="pill-btn" data-taper="wedge-top">Slant Wedge</button>
-        <button class="pill-btn" id="btn-mirror-x">Mirror X</button>
+  <!-- 3D viewport (artifact-style panel) -->
+  <section class="viewport" id="viewport">
+    <div class="vp-head">
+      <div class="vp-title"><span id="vp-name">Model</span><small id="cube-counter">0 cubes</small></div>
+      <div class="seg" id="seg-mode">
+        <button class="on" id="mode-cube">Cube</button>
+        <button id="mode-corner" title="Drag the 8 corners">Corners</button>
+        <button id="mode-face" title="Drag the 6 faces">Faces</button>
       </div>
+      <div class="seg">
+        <button class="on" id="gz-move" title="W">Move</button>
+        <button id="gz-rotate" title="E">Rotate</button>
+        <button id="gz-scale" title="R">Scale</button>
+      </div>
+      <button class="tool" id="btn-undo" title="Ctrl+Z">Undo</button>
+      <button class="tool" id="btn-frame">Frame</button>
+      <button class="tool" id="btn-inspector">Inspector</button>
+      <details class="menu">
+        <summary class="tool accent">Export</summary>
+        <div class="menu-pop">
+          <button id="exp-obj">.OBJ <small>(made by Rust)</small></button>
+          <button id="exp-gltf">.GLTF</button>
+          <button id="exp-json">.JSON</button>
+        </div>
+      </details>
+      <button class="icon" id="btn-view-close" title="Close">✕</button>
     </div>
+    <div id="canvas-host"></div>
 
-    <div class="insp-section">
-      <label>Color & Material</label>
-      <div class="row-flex">
+    <div class="inspector hidden" id="inspector">
+      <div class="insp-head"><b id="insp-title">Nothing selected</b><button class="danger" id="btn-del">Delete</button></div>
+      <div class="insp-sub" id="insp-sub">Click a cube in the viewport</div>
+      <label>Push / extrude a face</label>
+      <div class="faces">
+        <span>Top</span><button data-push="y+,-0.25">−</button><button data-push="y+,0.25">+</button><button data-ext="top">Extrude</button>
+        <span>Bottom</span><button data-push="y-,-0.25">−</button><button data-push="y-,0.25">+</button><button data-ext="bottom">Extrude</button>
+        <span>Right</span><button data-push="x+,-0.25">−</button><button data-push="x+,0.25">+</button><button data-ext="right">Extrude</button>
+        <span>Left</span><button data-push="x-,-0.25">−</button><button data-push="x-,0.25">+</button><button data-ext="left">Extrude</button>
+        <span>Front</span><button data-push="z+,-0.25">−</button><button data-push="z+,0.25">+</button><button data-ext="front">Extrude</button>
+        <span>Back</span><button data-push="z-,-0.25">−</button><button data-push="z-,0.25">+</button><button data-ext="back">Extrude</button>
+      </div>
+      <label>Chisel</label>
+      <div class="chisel">
+        <button data-taper="top-in">Taper top</button><button data-taper="ridge">Ridge</button>
+        <button data-taper="front-edge">Razor</button><button data-taper="wedge-top">Wedge</button>
+        <button id="btn-mirror">Mirror →</button>
+      </div>
+      <label>Colour &amp; material</label>
+      <div class="style-row">
         <input type="color" id="inp-color" value="#5EB58B" />
-        <select id="inp-mat">
-          <option value="matte">Sharp Matte</option>
-          <option value="metal">Titanium</option>
-          <option value="neon">Neon Glow</option>
-        </select>
+        <select id="inp-mat"><option value="matte">Matte</option><option value="metal">Titanium</option><option value="neon">Neon</option></select>
       </div>
     </div>
-  </aside>
-
-  <script type="module">
-    import * as THREE from 'three';
-    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-    import { TransformControls } from 'three/addons/controls/TransformControls.js';
-    import { OBJExporter } from 'three/addons/exporters/OBJExporter.js';
-    import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
-
-    // =========================================================================
-    // 1. FULL DIAGNOSTIC ERROR LOGGER (STREAMS STACK TRACES INTO CHAT)
-    // =========================================================================
-    const chatStream = document.getElementById('chat-stream');
-
-    function appendChatMessage(role, htmlContent, isError = false) {
-      const wrap = document.createElement('div');
-      wrap.className = `msg ${role} ${isError ? 'error-card' : ''}`;
-      wrap.innerHTML = `
-        <div class="msg-role">${isError ? '⚠️ SYSTEM ERROR DIAGNOSTIC' : role.toUpperCase()}</div>
-        <div class="msg-body">${htmlContent}</div>
-      `;
-      chatStream.appendChild(wrap);
-      chatStream.scrollTop = chatStream.scrollHeight;
-      return wrap;
-    }
-
-    function reportFullError(contextTitle, err) {
-      const stack = (err && err.stack) ? err.stack : String(err);
-      const message = (err && err.message) ? err.message : String(err);
-      const diagnosticHTML = `
-        <strong>${contextTitle}</strong><br/>
-        <span>${message}</span>
-        <pre class="error-trace">${stack}</pre>
-      `;
-      appendChatMessage('system', diagnosticHTML, true);
-      console.error(`[NEUROPIL ERROR - ${contextTitle}]`, err);
-    }
-
-    window.addEventListener('error', (event) => {
-      reportFullError('Uncaught Runtime Exception', event.error || event.message);
-    });
-    window.addEventListener('unhandledrejection', (event) => {
-      reportFullError('Unhandled Promise / Async AI Rejection', event.reason);
-    });
-
-    // =========================================================================
-    // 2. BACKGROUND 3D WORKSPACE & DEDICATED EXPORT GROUP
-    // =========================================================================
-    const container = document.getElementById('workspace-bg');
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color('#070b12');
-
-    // Dedicated group ONLY for user cubes so exports NEVER include gridlines or gizmos
-    const exportableGroup = new THREE.Group();
-    exportableGroup.name = 'Neuropil_Sharp_Model';
-    scene.add(exportableGroup);
-
-    const handleGroup = new THREE.Group();
-    scene.add(handleGroup);
-
-    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(4.5, 3.8, 5.5);
-
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
-    container.appendChild(renderer.domElement);
-
-    const grid = new THREE.GridHelper(28, 28, '#12879B', '#111c2d');
-    scene.add(grid);
-    scene.add(new THREE.AmbientLight(0xffffff, 0.85));
-    const sun = new THREE.DirectionalLight(0xffffff, 1.6);
-    sun.position.set(10, 20, 14);
-    scene.add(sun);
-
-    const orbit = new OrbitControls(camera, renderer.domElement);
-    orbit.enableDamping = true;
-    orbit.target.set(0, 0.5, 0);
-
-    const gizmo = new TransformControls(camera, renderer.domElement);
-    gizmo.setTranslationSnap(0.25);
-    gizmo.setRotationSnap(THREE.MathUtils.degToRad(15));
-    gizmo.setScaleSnap(0.25);
-    gizmo.addEventListener('dragging-changed', e => { orbit.enabled = !e.value; });
-    scene.add(gizmo);
-
-    // =========================================================================
-    // 3. PURE 8-CORNER SHARP CUBE KERNEL
-    // =========================================================================
-    const BASE_CORNERS = [
-      [-0.5, -0.5, -0.5], [ 0.5, -0.5, -0.5], [ 0.5,  0.5, -0.5], [-0.5,  0.5, -0.5],
-      [-0.5, -0.5,  0.5], [ 0.5, -0.5,  0.5], [ 0.5,  0.5,  0.5], [-0.5,  0.5,  0.5]
-    ];
-
-    const QUAD_FACES = [
-      { name: 'back',   corners: [0, 3, 2, 1] },
-      { name: 'front',  corners: [4, 5, 6, 7] },
-      { name: 'bottom', corners: [0, 1, 5, 4] },
-      { name: 'top',    corners: [3, 7, 6, 2] },
-      { name: 'left',   corners: [0, 4, 7, 3] },
-      { name: 'right',  corners: [1, 2, 6, 5] }
-    ];
-
-    let cubes = [];
-    let selected = null;
-    let editMode = 'cube';
-    let handles = [];
-    let activeHandle = null;
-
-    function buildSharpGeometry(corners) {
-      const pos = [];
-      QUAD_FACES.forEach(f => {
-        const [a, b, c, d] = f.corners.map(i => corners[i]);
-        pos.push(...a, ...b, ...c, ...a, ...c, ...d);
-      });
-      const geo = new THREE.BufferGeometry();
-      geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-      geo.computeVertexNormals();
-      return geo;
-    }
-
-    function buildMaterial(color, matType = 'matte') {
-      return new THREE.MeshStandardMaterial({
-        color: new THREE.Color(color),
-        emissive: new THREE.Color(matType === 'neon' ? color : '#000000'),
-        emissiveIntensity: matType === 'neon' ? 1.1 : 0,
-        metalness: matType === 'metal' ? 0.85 : 0.15,
-        roughness: matType === 'metal' ? 0.2 : 0.45,
-        flatShading: true,
-        polygonOffset: true,
-        polygonOffsetFactor: 1,
-        polygonOffsetUnits: 1
-      });
-    }
-
-    function spawnSharpCube({
-      name = null,
-      role = 'Sharp structural cube',
-      pos = [0, 0.5, 0],
-      size = [1, 1, 1],
-      rot = [0, 0, 0],
-      color = '#5EB58B',
-      matType = 'matte',
-      corners = null
-    } = {}) {
-      const cPts = corners ? corners.map(pt => [...pt]) : BASE_CORNERS.map(pt => [...pt]);
-      const geo = buildSharpGeometry(cPts);
-      const mat = buildMaterial(color, matType);
-      const mesh = new THREE.Mesh(geo, mat);
-
-      mesh.name = name || `Cube_${cubes.length + 1}`;
-      mesh.position.set(...pos);
-      mesh.scale.set(...size);
-      mesh.rotation.set(
-        THREE.MathUtils.degToRad(rot[0]),
-        THREE.MathUtils.degToRad(rot[1]),
-        THREE.MathUtils.degToRad(rot[2])
-      );
-
-      // Edge wireframe attached as non-exported visual helper
-      const edgeGeo = new THREE.EdgesGeometry(geo, 15);
-      const edgeLines = new THREE.LineSegments(
-        edgeGeo,
-        new THREE.LineBasicMaterial({ color: 0x00f5d4, transparent: true, opacity: 0.65 })
-      );
-      edgeLines.userData.isHelper = true;
-      mesh.add(edgeLines);
-
-      mesh.userData = { name: mesh.name, role, color, matType, corners: cPts, edgeLines };
-      exportableGroup.add(mesh);
-      cubes.push(mesh);
-      selectCube(mesh);
-      updateCounter();
-      return mesh;
-    }
-
-    function updateCubeGeometry(mesh) {
-      if (!mesh) return;
-      mesh.geometry.dispose();
-      mesh.geometry = buildSharpGeometry(mesh.userData.corners);
-      if (mesh.userData.edgeLines) {
-        mesh.userData.edgeLines.geometry.dispose();
-        mesh.userData.edgeLines.geometry = new THREE.EdgesGeometry(mesh.geometry, 15);
-      }
-      rebuildHandles();
-    }
-
-    function selectCube(mesh) {
-      selected = mesh;
-      rebuildHandles();
-      if (editMode === 'cube') {
-        if (mesh) gizmo.attach(mesh);
-        else gizmo.detach();
-      }
-      if (mesh) {
-        document.getElementById('insp-title').textContent = mesh.userData.name;
-        document.getElementById('inp-role').value = mesh.userData.role;
-        document.getElementById('inp-color').value = mesh.userData.color;
-        document.getElementById('inp-mat').value = mesh.userData.matType;
-      }
-    }
-
-    function resetToSingleOriginCube() {
-      gizmo.detach();
-      clearHandles();
-      cubes.forEach(c => exportableGroup.remove(c));
-      cubes = [];
-      spawnSharpCube({
-        name: 'Origin_Cube',
-        role: 'Root 1x1x1 sharp origin cube',
-        pos: [0, 0.5, 0],
-        size: [1, 1, 1],
-        color: '#5EB58B',
-        matType: 'matte'
-      });
-    }
-
-    function updateCounter() {
-      document.getElementById('cube-counter').textContent = `${cubes.length} ${cubes.length === 1 ? 'Cube' : 'Cubes'}`;
-    }
-
-    // =========================================================================
-    // 4. 8-CORNER & 6-FACE DIRECT EDITING
-    // =========================================================================
-    function clearHandles() {
-      handles.forEach(h => handleGroup.remove(h));
-      handles = [];
-      activeHandle = null;
-    }
-
-    function rebuildHandles() {
-      clearHandles();
-      if (!selected || editMode === 'cube') return;
-      selected.updateMatrixWorld();
-
-      if (editMode === 'corner') {
-        const geo = new THREE.BoxGeometry(0.14, 0.14, 0.14);
-        selected.userData.corners.forEach((pt, idx) => {
-          const h = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0xfacc15 }));
-          h.position.set(...pt).applyMatrix4(selected.matrixWorld);
-          h.userData = { mode: 'corner', idx };
-          handleGroup.add(h);
-          handles.push(h);
-        });
-      } else if (editMode === 'face') {
-        const geo = new THREE.BoxGeometry(0.18, 0.18, 0.18);
-        QUAD_FACES.forEach(f => {
-          const center = new THREE.Vector3();
-          f.corners.forEach(ci => center.add(new THREE.Vector3(...selected.userData.corners[ci])));
-          center.divideScalar(4);
-          const h = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0xf43f5e }));
-          h.position.copy(center).applyMatrix4(selected.matrixWorld);
-          h.userData = { mode: 'face', corners: f.corners, lastWorld: h.position.clone() };
-          handleGroup.add(h);
-          handles.push(h);
-        });
-      }
-    }
-
-    gizmo.addEventListener('objectChange', () => {
-      if (!selected || editMode === 'cube' || !activeHandle) return;
-      const inv = selected.matrixWorld.clone().invert();
-      if (activeHandle.userData.mode === 'corner') {
-        const loc = activeHandle.position.clone().applyMatrix4(inv);
-        selected.userData.corners[activeHandle.userData.idx] = [loc.x, loc.y, loc.z];
-        updateCubeGeometry(selected);
-      } else if (activeHandle.userData.mode === 'face') {
-        const prev = activeHandle.userData.lastWorld.clone().applyMatrix4(inv);
-        const curr = activeHandle.position.clone().applyMatrix4(inv);
-        const delta = curr.sub(prev);
-        activeHandle.userData.corners.forEach(ci => {
-          selected.userData.corners[ci][0] += delta.x;
-          selected.userData.corners[ci][1] += delta.y;
-          selected.userData.corners[ci][2] += delta.z;
-        });
-        activeHandle.userData.lastWorld.copy(activeHandle.position);
-        updateCubeGeometry(selected);
-      }
-    });
-
-    function setEditMode(m) {
-      editMode = m;
-      ['mode-cube', 'mode-corner', 'mode-face'].forEach(id => {
-        document.getElementById(id).classList.toggle('active', id === `mode-${m}`);
-      });
-      if (m === 'cube') {
-        clearHandles();
-        if (selected) gizmo.attach(selected);
-      } else {
-        gizmo.detach();
-        rebuildHandles();
-        if (handles[0]) {
-          activeHandle = handles[0];
-          gizmo.attach(activeHandle);
-        }
-      }
-    }
-
-    document.getElementById('mode-cube').onclick = () => setEditMode('cube');
-    document.getElementById('mode-corner').onclick = () => setEditMode('corner');
-    document.getElementById('mode-face').onclick = () => setEditMode('face');
-
-    // =========================================================================
-    // 5. SHARP CUBE OPERATIONS & FIXED CLEAN EXPORTERS (.OBJ / .GLTF / .JSON)
-    // =========================================================================
-    function pushFace(mesh, axisDir, amount) {
-      if (!mesh) throw new Error('pushFace failed: No active cube selected in workspace.');
-      if (axisDir === 'y+') { mesh.scale.y = Math.max(0.1, mesh.scale.y + amount); mesh.position.y += amount / 2; }
-      if (axisDir === 'y-') { mesh.scale.y = Math.max(0.1, mesh.scale.y + amount); mesh.position.y -= amount / 2; }
-      if (axisDir === 'x+') { mesh.scale.x = Math.max(0.1, mesh.scale.x + amount); mesh.position.x += amount / 2; }
-      if (axisDir === 'x-') { mesh.scale.x = Math.max(0.1, mesh.scale.x + amount); mesh.position.x -= amount / 2; }
-      if (axisDir === 'z+') { mesh.scale.z = Math.max(0.1, mesh.scale.z + amount); mesh.position.z += amount / 2; }
-      if (axisDir === 'z-') { mesh.scale.z = Math.max(0.1, mesh.scale.z + amount); mesh.position.z -= amount / 2; }
-    }
-
-    function extrudeCube(src, face, dist = 1.0, inset = 1.0, color = null) {
-      if (!src) throw new Error(`extrudeCube('${face}') failed: Target cube does not exist.`);
-      const p = src.position, s = src.scale;
-      let pos = [p.x, p.y, p.z];
-      let size = [s.x * inset, s.y * inset, s.z * inset];
-
-      if (face === 'top')    { size = [s.x * inset, dist, s.z * inset]; pos = [p.x, p.y + s.y/2 + dist/2, p.z]; }
-      if (face === 'bottom') { size = [s.x * inset, dist, s.z * inset]; pos = [p.x, p.y - s.y/2 - dist/2, p.z]; }
-      if (face === 'front')  { size = [s.x * inset, s.y * inset, dist]; pos = [p.x, p.y, p.z + s.z/2 + dist/2]; }
-      if (face === 'back')   { size = [s.x * inset, s.y * inset, dist]; pos = [p.x, p.y, p.z - s.z/2 - dist/2]; }
-      if (face === 'right')  { size = [dist, s.y * inset, s.z * inset]; pos = [p.x + s.x/2 + dist/2, p.y, p.z]; }
-      if (face === 'left')   { size = [dist, s.y * inset, s.z * inset]; pos = [p.x - s.x/2 - dist/2, p.y, p.z]; }
-
-      return spawnSharpCube({
-        name: `${src.userData.name}_${face}`,
-        role: `Extruded ${face} from ${src.userData.name}`,
-        pos,
-        size,
-        color: color || src.userData.color,
-        matType: src.userData.matType
-      });
-    }
-
-    function taperCube(mesh, mode, factor = 0.5) {
-      if (!mesh) throw new Error(`taperCube('${mode}') failed: No target cube.`);
-      const c = mesh.userData.corners;
-      if (mode === 'top-in')     [2, 3, 6, 7].forEach(i => { c[i][0] *= factor; c[i][2] *= factor; });
-      if (mode === 'bot-in')     [0, 1, 4, 5].forEach(i => { c[i][0] *= factor; c[i][2] *= factor; });
-      if (mode === 'front-edge') [4, 5, 6, 7].forEach(i => { c[i][0] *= 0.08; });
-      if (mode === 'wedge-top')  [3, 2].forEach(i => { c[i][1] = -0.45; });
-      updateCubeGeometry(mesh);
-    }
-
-    // Build a clean mesh-only clone group for export (strips wireframe helpers & bakes transforms)
-    function buildCleanExportScene() {
-      if (cubes.length === 0) throw new Error('Export Aborted: Workspace has 0 cubes to export.');
-      const cleanRoot = new THREE.Group();
-      cubes.forEach(c => {
-        c.updateMatrixWorld(true);
-        const bakedGeo = c.geometry.clone();
-        bakedGeo.applyMatrix4(c.matrixWorld);
-        const cleanMesh = new THREE.Mesh(bakedGeo, c.material.clone());
-        cleanMesh.name = c.userData.name;
-        cleanRoot.add(cleanMesh);
-      });
-      return cleanRoot;
-    }
-
-    function triggerDownload(blob, filename) {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }, 200);
-    }
-
-    document.getElementById('export-obj').onclick = () => {
-      try {
-        const cleanGroup = buildCleanExportScene();
-        const objData = new OBJExporter().parse(cleanGroup);
-        triggerDownload(new Blob([objData], { type: 'text/plain;charset=utf-8' }), 'neuropil_sharp_model.obj');
-        appendChatMessage('ai', `✅ Exported <strong>${cubes.length} sharp cubes</strong> to <code>neuropil_sharp_model.obj</code> (baked world coordinates, zero helper lines).`);
-      } catch (err) {
-        reportFullError('OBJ Export Failure', err);
-      }
-    };
-
-    document.getElementById('export-gltf').onclick = () => {
-      try {
-        const cleanGroup = buildCleanExportScene();
-        new GLTFExporter().parse(
-          cleanGroup,
-          (gltfJson) => {
-            const out = JSON.stringify(gltfJson, null, 2);
-            triggerDownload(new Blob([out], { type: 'application/json' }), 'neuropil_sharp_model.gltf');
-            appendChatMessage('ai', `✅ Exported <strong>${cubes.length} sharp cubes</strong> to <code>neuropil_sharp_model.gltf</code>.`);
-          },
-          (err) => reportFullError('GLTF Exporter Callback Error', err)
-        );
-      } catch (err) {
-        reportFullError('GLTF Export Failure', err);
-      }
-    };
-
-    document.getElementById('export-json').onclick = () => {
-      try {
-        const payload = JSON.stringify(window.NeuropilAPI.getState(), null, 2);
-        triggerDownload(new Blob([payload], { type: 'application/json' }), 'neuropil_workspace.json');
-        appendChatMessage('ai', `✅ Saved workspace state (<code>neuropil_workspace.json</code>).`);
-      } catch (err) {
-        reportFullError('Workspace JSON Export Failure', err);
-      }
-    };
-
-    // =========================================================================
-    // 6. AI WORKSPACE EXECUTION ENGINE (SHOWS LIVE AI STEPS & FULL ERRORS)
-    // =========================================================================
-    window.NeuropilAPI = {
-      getState: () => cubes.map(c => ({
-        name: c.userData.name,
-        role: c.userData.role,
-        pos: [Number(c.position.x.toFixed(2)), Number(c.position.y.toFixed(2)), Number(c.position.z.toFixed(2))],
-        size: [Number(c.scale.x.toFixed(2)), Number(c.scale.y.toFixed(2)), Number(c.scale.z.toFixed(2))],
-        rot: [
-          Math.round(THREE.MathUtils.radToDeg(c.rotation.x)),
-          Math.round(THREE.MathUtils.radToDeg(c.rotation.y)),
-          Math.round(THREE.MathUtils.radToDeg(c.rotation.z))
-        ],
-        color: c.userData.color,
-        mat: c.userData.matType
-      })),
-      executePlan: async (steps, explanation = 'Executing sharp-cube operations on workspace:') => {
-        const card = appendChatMessage('ai', `<div>${explanation}</div><div class="op-log-list"></div>`);
-        const logList = card.querySelector('.op-log-list');
-
-        for (let i = 0; i < steps.length; i++) {
-          const s = steps[i];
-          const badge = document.createElement('div');
-          badge.className = 'op-step';
-          badge.textContent = `⏳ [${i + 1}/${steps.length}] ${s.op} → ${s.name || s.target || s.face || ''}`;
-          logList.appendChild(badge);
-
-          await new Promise(r => setTimeout(r, 90));
-
-          try {
-            if (s.op === 'reset') {
-              resetToSingleOriginCube();
-            } else if (s.op === 'spawn') {
-              spawnSharpCube({
-                name: s.name,
-                role: s.role || 'AI spawned sharp cube',
-                pos: s.pos || [0, 0.5, 0],
-                size: s.size || [1, 1, 1],
-                rot: s.rot || [0, 0, 0],
-                color: s.color || '#5EB58B',
-                matType: s.mat || 'matte'
-              });
-            } else if (s.op === 'extrude') {
-              const target = s.target ? cubes.find(c => c.userData.name === s.target) : selected;
-              extrudeCube(target, s.face || 'top', s.dist || 1.0, s.inset || 1.0, s.color);
-            } else if (s.op === 'taper') {
-              const target = s.target ? cubes.find(c => c.userData.name === s.target) : selected;
-              taperCube(target, s.mode || 'top-in', s.factor ?? 0.5);
-            } else if (s.op === 'push') {
-              const target = s.target ? cubes.find(c => c.userData.name === s.target) : selected;
-              pushFace(target, s.axis || 'y+', s.amount || 0.5);
-            } else {
-              throw new Error(`Unknown AI operation '${s.op}' in step ${i + 1}. Valid ops: spawn, extrude, taper, push, reset.`);
-            }
-            badge.className = 'op-step done';
-            badge.textContent = `✓ [${i + 1}/${steps.length}] ${s.op} (${s.name || s.target || s.face || 'ok'})`;
-          } catch (stepErr) {
-            badge.className = 'op-step failed';
-            badge.textContent = `✕ [${i + 1}/${steps.length}] FAILED: ${s.op}`;
-            reportFullError(`AI Step [${i + 1}] Execution Failed (${JSON.stringify(s)})`, stepErr);
-            throw stepErr;
-          }
-        }
-      }
-    };
-
-    async function handleUserPrompt(promptText) {
-      appendChatMessage('user', promptText);
-      const lower = promptText.toLowerCase();
-
-      // Explicit diagnostic test trigger so user can verify error stack display
-      if (lower.includes('error') || lower.includes('diagnostic')) {
-        try {
-          await window.NeuropilAPI.executePlan([
-            { op: 'extrude', target: 'NonExistent_Cube_999', face: 'top', dist: 1.5 }
-          ], 'Running diagnostic error test...');
-        } catch (_) {}
-        return;
-      }
-
-      const provider = document.getElementById('ai-provider').value;
-      const apiKey = document.getElementById('api-key').value.trim();
-
-      try {
-        // 1. If user configured an external OpenAI-compatible API key
-        if (provider === 'openai' && apiKey) {
-          const url = document.getElementById('api-url').value.trim();
-          const model = document.getElementById('api-model').value.trim();
-          const sysPrompt = `You are Neuropil 3D Sharp-Cube AI. Current workspace JSON: ${JSON.stringify(window.NeuropilAPI.getState())}. Respond ONLY with valid JSON: {"explanation":"...","steps":[{"op":"spawn|extrude|taper|push|reset","name":"...","target":"...","face":"top|bottom|left|right|front|back","dist":1.0,"inset":0.8,"mode":"top-in|front-edge|wedge-top","pos":[x,y,z],"size":[x,y,z],"color":"#5EB58B"}]}`;
-
-          const res = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-            body: JSON.stringify({
-              model,
-              messages: [{ role: 'system', content: sysPrompt }, { role: 'user', content: promptText }],
-              response_format: { type: 'json_object' }
-            })
-          });
-          if (!res.ok) {
-            const errBody = await res.text();
-            throw new Error(`HTTP ${res.status} from ${url}: ${errBody}`);
-          }
-          const data = await res.json();
-          const parsed = JSON.parse(data.choices[0].message.content);
-          await window.NeuropilAPI.executePlan(parsed.steps || [], parsed.explanation || 'AI Plan Executed:');
-          return;
-        }
-
-        // 2. Try Rust Backend `/api/prompt` if running on Render / Cargo
-        try {
-          const res = await fetch('/api/prompt', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: promptText, workspace: window.NeuropilAPI.getState() })
-          });
-          if (res.ok) {
-            const plan = await res.json();
-            if (plan.steps && plan.steps.length) {
-              await window.NeuropilAPI.executePlan(plan.steps, plan.explanation);
-              return;
-            }
-          }
-        } catch (_) {
-          // Offline / raw HTML mode falls through to built-in planner below
-        }
-
-        // 3. Built-in Instant Sharp-Cube Planner (Works 100% offline or online)
-        let steps = [];
-        let explanation = '';
-
-        if (lower.includes('r15') || lower.includes('character') || lower.includes('rig')) {
-          explanation = 'Building articulated Sharp-Cube R15 Character starting from Origin_Cube:';
-          steps = [
-            { op: 'reset' },
-            { op: 'push', target: 'Origin_Cube', axis: 'y+', amount: 1.0 },
-            { op: 'extrude', target: 'Origin_Cube', face: 'top', dist: 1.4, inset: 1.8, color: '#12879B' },
-            { op: 'extrude', target: 'Origin_Cube_top', face: 'top', dist: 1.1, inset: 0.65, color: '#e2e8f0' },
-            { op: 'extrude', target: 'Origin_Cube_top_top', face: 'front', dist: 0.2, inset: 0.5, color: '#5EB58B' },
-            { op: 'spawn', name: 'Left_Arm', pos: [-1.4, 2.2, 0], size: [0.8, 1.8, 0.8], color: '#1e293b' },
-            { op: 'spawn', name: 'Right_Arm', pos: [1.4, 2.2, 0], size: [0.8, 1.8, 0.8], color: '#1e293b' },
-            { op: 'spawn', name: 'Left_Leg', pos: [-0.5, 0.9, 0], size: [0.8, 1.8, 0.8], color: '#0f172a' },
-            { op: 'spawn', name: 'Right_Leg', pos: [0.5, 0.9, 0], size: [0.8, 1.8, 0.8], color: '#0f172a' }
-          ];
-        } else if (lower.includes('katana') || lower.includes('sword') || lower.includes('blade')) {
-          explanation = 'Sculpting sharp-edged Cyber Katana from the active cube:';
-          steps = [
-            { op: 'reset' },
-            { op: 'extrude', target: 'Origin_Cube', face: 'top', dist: 0.2, inset: 2.2, color: '#12879B' },
-            { op: 'extrude', target: 'Origin_Cube_top', face: 'top', dist: 3.2, inset: 0.35, color: '#5EB58B' },
-            { op: 'taper', target: 'Origin_Cube_top_top', mode: 'front-edge' },
-            { op: 'taper', target: 'Origin_Cube_top_top', mode: 'top-in', factor: 0.15 }
-          ];
-        } else {
-          explanation = `Executing multi-stage sharp extrusion & taper for "${promptText}":`;
-          steps = [
-            { op: 'extrude', face: 'top', dist: 1.0, inset: 0.82, color: '#12879B' },
-            { op: 'extrude', face: 'top', dist: 1.2, inset: 0.75, color: '#5EB58B' },
-            { op: 'taper', mode: 'top-in', factor: 0.35 }
-          ];
-        }
-
-        await window.NeuropilAPI.executePlan(steps, explanation);
-      } catch (err) {
-        reportFullError('AI Architect Execution Error', err);
-      }
-    }
-
-    // =========================================================================
-    // 7. UI BINDINGS & RAYCAST SELECTION
-    // =========================================================================
-    document.getElementById('chat-send').onclick = () => {
-      const inp = document.getElementById('chat-input');
-      const text = inp.value.trim();
-      if (!text) return;
-      inp.value = '';
-      handleUserPrompt(text);
-    };
-
-    document.getElementById('chat-input').addEventListener('keydown', e => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        document.getElementById('chat-send').click();
-      }
-    });
-
-    document.querySelectorAll('.chip').forEach(c => {
-      c.onclick = () => handleUserPrompt(c.dataset.prompt);
-    });
-
-    document.getElementById('btn-api-settings').onclick = () => {
-      document.getElementById('api-drawer').classList.toggle('hidden');
-    };
-
-    document.getElementById('btn-toggle-inspector').onclick = () => {
-      document.getElementById('inspector-panel').classList.toggle('hidden');
-    };
-
-    document.getElementById('btn-add-cube').onclick = () => {
-      spawnSharpCube({ pos: [selected ? selected.position.x + 1.25 : 0, 0.5, 0] });
-    };
-    document.getElementById('btn-reset-origin').onclick = resetToSingleOriginCube;
-
-    document.getElementById('gz-move').onclick = () => gizmo.setMode('translate');
-    document.getElementById('gz-rotate').onclick = () => gizmo.setMode('rotate');
-    document.getElementById('gz-scale').onclick = () => gizmo.setMode('scale');
-
-    document.querySelectorAll('[data-push]').forEach(b => {
-      b.onclick = () => {
-        try {
-          const [ax, amt] = b.dataset.push.split(',');
-          pushFace(selected, ax, parseFloat(amt));
-        } catch (err) { reportFullError('Face Push Error', err); }
-      };
-    });
-
-    document.querySelectorAll('[data-ext]').forEach(b => {
-      b.onclick = () => {
-        try { extrudeCube(selected, b.dataset.ext, 0.8, 0.9); }
-        catch (err) { reportFullError('Face Extrude Error', err); }
-      };
-    });
-
-    document.querySelectorAll('[data-taper]').forEach(b => {
-      b.onclick = () => {
-        try { taperCube(selected, b.dataset.taper, 0.45); }
-        catch (err) { reportFullError('Cube Taper Error', err); }
-      };
-    });
-
-    document.getElementById('btn-mirror-x').onclick = () => {
-      if (!selected) return;
-      spawnSharpCube({
-        name: `${selected.userData.name}_MirrorX`,
-        pos: [-selected.position.x, selected.position.y, selected.position.z],
-        size: [selected.scale.x, selected.scale.y, selected.scale.z],
-        color: selected.userData.color,
-        matType: selected.userData.matType,
-        corners: selected.userData.corners.map(c => [-c[0], c[1], c[2]])
-      });
-    };
-
-    document.getElementById('inp-color').oninput = e => {
-      if (!selected) return;
-      selected.userData.color = e.target.value;
-      selected.material = buildMaterial(e.target.value, selected.userData.matType);
-    };
-
-    document.getElementById('inp-mat').onchange = e => {
-      if (!selected) return;
-      selected.userData.matType = e.target.value;
-      selected.material = buildMaterial(selected.userData.color, e.target.value);
-    };
-
-    document.getElementById('btn-del-cube').onclick = () => {
-      if (!selected) return;
-      gizmo.detach();
-      exportableGroup.remove(selected);
-      cubes = cubes.filter(c => c !== selected);
-      selectCube(cubes[0] || null);
-      updateCounter();
-    };
-
-    // Raycast click selection in background 3D canvas
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-    renderer.domElement.addEventListener('pointerdown', e => {
-      if (e.button !== 0 || gizmo.dragging) return;
-      mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-      mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-      raycaster.setFromCamera(mouse, camera);
-
-      if (editMode !== 'cube') {
-        const hHits = raycaster.intersectObjects(handles, false);
-        if (hHits.length) {
-          activeHandle = hHits[0].object;
-          gizmo.attach(activeHandle);
-          return;
-        }
-      }
-      const hits = raycaster.intersectObjects(cubes, false);
-      if (hits.length) selectCube(hits[0].object);
-    });
-
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-
-    // START WORKSPACE WITH NOTHING BUT 1 SHARP CUBE
-    resetToSingleOriginCube();
-
-    function animate() {
-      requestAnimationFrame(animate);
-      orbit.update();
-      renderer.render(scene, camera);
-    }
-    animate();
-  </script>
+    <div class="empty-view" id="empty-view">Your model will appear here</div>
+  </section>
+</div>
+<div class="toast" id="toast"></div>
+<script type="module" src="/studio.js"></script>
 </body>
 </html>
