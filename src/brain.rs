@@ -809,8 +809,9 @@ fn do_taper(ctx: &mut Ctx, t: &[String]) {
         return;
     }
     for &i in idx.iter() {
-        if let Err(e) = geom::taper(&mut ctx.ws[i], mode, factor) {
-            ctx.fail("taper", &e);
+        let res: Result<(), String> = geom::taper(&mut ctx.ws[i], mode, factor);
+        if let Err(e) = res {
+            ctx.fail("taper", e.as_str());
             return;
         }
     }
@@ -837,7 +838,8 @@ fn do_extrude(ctx: &mut Ctx, t: &[String]) {
             ctx.fail("extrude", "the scene is full (600 cubes max).");
             break;
         }
-        match geom::extrude(&src, &face, dist, 0.85, color.as_deref()) {
+        let res: Result<Cube, String> = geom::extrude(&src, face.as_str(), dist, 0.85, color.as_deref());
+        match res {
             Ok(mut c) => {
                 c.name = unique_name(&ctx.ws, &c.name);
                 ctx.ws.push(c.clone());
@@ -845,7 +847,7 @@ fn do_extrude(ctx: &mut Ctx, t: &[String]) {
                 made += 1;
             }
             Err(e) => {
-                ctx.fail("extrude", &e);
+                ctx.fail("extrude", e.as_str());
                 break;
             }
         }
