@@ -1,6 +1,6 @@
 [package]
 name = "neuropil"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 
 [dependencies]
@@ -8,4 +8,8 @@ axum = "0.8"
 tokio = { version = "1.44", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-tower-http = { version = "0.6", features = ["cors", "fs"] }
+tower-http = { version = "0.6", features = ["cors"] }
+
+[profile.release]
+opt-level = 3
+lto = true
