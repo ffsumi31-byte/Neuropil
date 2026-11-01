@@ -5,3 +5,4 @@ services:
     plan: free
     buildCommand: cargo build --release
     startCommand: ./target/release/neuropil
+    healthCheckPath: /api/health
