@@ -135,10 +135,6 @@ fn unique_name(ws: &[Cube], base: &str) -> String {
     }
 }
 
-fn pick<'a>(seed: u64, options: &[&'a str]) -> &'a str {
-    options[(seed % options.len() as u64) as usize]
-}
-
 struct Ctx {
     ws: Vec<Cube>,
     selected: Option<String>,
